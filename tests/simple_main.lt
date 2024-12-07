@@ -1,0 +1,5 @@
+fn main() {
+    var a = 3;
+    var b = 0;
+    return a + b;
+}
