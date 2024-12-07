@@ -1,0 +1,87 @@
+# Compiled source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Go specific
+*.exe
+*.test
+*.out
+vendor/
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Java specific
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+target/
+build/
+
+# Ruby specific
+*.gem
+*.rbc
+.bundle/
+log/
+tmp/
+vendor/bundle/
+.rvmrc
+.rbenv-version
+.ruby-version
+.ruby-gemset
+
+# PHP specific
+vendor/
+composer.lock
+
+# Environment files
+.env
+.env.*
