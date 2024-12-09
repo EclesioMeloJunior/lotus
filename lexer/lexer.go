@@ -17,6 +17,7 @@ const (
 	VAR
 	IDENT
 	INT
+	STRING
 	ASSIGN
 	PLUS
 	MINUS
@@ -36,7 +37,70 @@ const (
 	NEXTLINE
 	RETURN
 	COMMA
+	COLON
+	RAWTYPE
 )
+
+func (t *TokenType) String() string {
+	switch *t {
+	case ILLEGAL:
+		return "ILLEGAL"
+	case EOF:
+		return "EOF"
+	case VAR:
+		return "VAR"
+	case IDENT:
+		return "IDENT"
+	case INT:
+		return "INT"
+	case ASSIGN:
+		return "ASSIGN"
+	case PLUS:
+		return "PLUS"
+	case MINUS:
+		return "MINUS"
+	case STAR:
+		return "STAR"
+	case SLASH:
+		return "SLASH"
+	case MAIN:
+		return "MAIN"
+	case FN:
+		return "FN"
+	case CONTINUE:
+		return "CONTINUE"
+	case IF:
+		return "IF"
+	case BREAK:
+		return "BREAK"
+	case LBRACE:
+		return "LBRACE"
+	case RBRACE:
+		return "RBRACE"
+	case LPAREN:
+		return "LPAREN"
+	case RPAREN:
+		return "RPAREN"
+	case FLOAT:
+		return "FLOAT"
+	case SEMICOLON:
+		return "SEMICOLON"
+	case NEXTLINE:
+		return "NEXTLINE"
+	case RETURN:
+		return "RETURN"
+	case COMMA:
+		return "COMMA"
+	case COLON:
+		return "COLON"
+	case RAWTYPE:
+		return "RAWTYPE"
+	case STRING:
+		return "STRING"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 var Keywords = map[string]TokenType{
 	"var":      VAR,
@@ -45,6 +109,8 @@ var Keywords = map[string]TokenType{
 	"if":       IF,
 	"break":    BREAK,
 	"return":   RETURN,
+	"int32":    RAWTYPE,
+	"string":   RAWTYPE,
 }
 
 // Token represents a lexical token.
@@ -125,6 +191,13 @@ func (l *Lexer) NextToken() iter.Seq[Token] {
 				tok = Token{Type: SEMICOLON, Literal: string(ch), Line: l.line, Column: l.column - 1}
 			case ch == ',':
 				tok = Token{Type: COMMA, Literal: string(ch), Line: l.line, Column: l.column - 1}
+			case ch == ':':
+				tok = Token{Type: COLON, Literal: string(ch), Line: l.line, Column: l.column - 1}
+			case ch == '"':
+				tok = l.readString()
+				tok.Line = l.line
+
+				tok.Column = l.column - len(tok.Literal)
 			case ch == 0:
 				tok = Token{Type: EOF, Literal: "", Line: 0, Column: 0}
 			default:
@@ -160,7 +233,7 @@ func (l *Lexer) readIdent() Token {
 	var buf bytes.Buffer
 	buf.WriteRune(l.read())
 	for {
-		if ch := l.read(); isLetter(ch) {
+		if ch := l.read(); isLetter(ch) || isDigit(ch) {
 			buf.WriteRune(ch)
 		} else {
 			l.unread()
@@ -168,6 +241,19 @@ func (l *Lexer) readIdent() Token {
 		}
 	}
 	return Token{Type: IDENT, Literal: buf.String()}
+}
+
+func (l *Lexer) readString() Token {
+	var buf bytes.Buffer
+	buf.WriteRune(l.read())
+	for {
+		if ch := l.read(); ch != '"' {
+			buf.WriteRune(ch)
+		} else {
+			break
+		}
+	}
+	return Token{Type: STRING, Literal: buf.String()}
 }
 
 func (l *Lexer) readNumber() Token {

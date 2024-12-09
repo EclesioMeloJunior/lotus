@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -125,7 +126,7 @@ func TestParser_ParseGroupedExpression(t *testing.T) {
 }
 
 func TestParser_ParseFunction(t *testing.T) {
-	input := `fn add(a, b) {
+	input := `fn add(a: int32, b: int32): int32 {
 	return a + b;
 }`
 
@@ -142,8 +143,12 @@ func TestParser_ParseFunction(t *testing.T) {
 	expected := &parser.Program{
 		Statements: []parser.Node{
 			&parser.FnStatement{
-				Name: "add",
-				Args: []string{"a", "b"},
+				ReturnType: parser.Int32,
+				Name:       "add",
+				Args: []*parser.Argument{
+					{Name: "a", Type: parser.Int32},
+					{Name: "b", Type: parser.Int32},
+				},
 				Body: []parser.Node{
 					&parser.ReturnStatement{
 						Value: &parser.InfixExpression{
@@ -162,4 +167,21 @@ func TestParser_ParseFunction(t *testing.T) {
 	}
 
 	require.Equal(t, expected, program)
+}
+
+func TestParser_ShouldErrorIfReturnIsNotPresent(t *testing.T) {
+	input := `fn add(a, b): int32 {
+	var a: int32 = 10;
+}`
+
+	l := lexer.NewLexer(strings.NewReader(input))
+	tokens := l.NextToken()
+	p := parser.NewParser(tokens)
+
+	_, err := p.ParseProgram()
+	require.Error(t, err, &parser.ErrParser{
+		Line:   3,
+		Column: 0,
+		Err:    errors.New("function must have a return"),
+	})
 }

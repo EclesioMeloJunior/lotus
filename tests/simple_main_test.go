@@ -10,7 +10,7 @@ import (
 	gollvm "tinygo.org/x/go-llvm"
 )
 
-func TestSimpleInput(t *testing.T) {
+func TestSimpleMain(t *testing.T) {
 	src := readInput(t, "./simple_main.lt")
 
 	l := lexer.NewLexer(src)
@@ -25,4 +25,60 @@ func TestSimpleInput(t *testing.T) {
 	runMainFn(t, irGen, func(ee gollvm.ExecutionEngine, gv gollvm.GenericValue) {
 		require.Equal(t, uint64(3), gv.Int(false))
 	})
+}
+
+func TestSimpleMainWithTypes(t *testing.T) {
+	src := readInput(t, "./simple_main_with_types.lt")
+	l := lexer.NewLexer(src)
+
+	p := parser.NewParser(l.NextToken())
+
+	program, err := p.ParseProgram()
+	require.NoError(t, err)
+
+	require.Len(t, program.Statements, 1)
+	require.Equal(t, &parser.FnStatement{
+		Name: "main",
+		Args: []*parser.Argument{},
+		Body: []parser.Node{
+			&parser.VarStatement{
+				Name:  "a",
+				Value: &parser.IntegerLiteral{Value: 3},
+				Type:  parser.Int32,
+			},
+			&parser.VarStatement{
+				Name:  "b",
+				Value: &parser.IntegerLiteral{Value: 0},
+				Type:  parser.Int32,
+			},
+			&parser.VarStatement{
+				Name:  "c",
+				Value: &parser.Identifier{Value: "b", Type: parser.Int32},
+				Type:  parser.Int32,
+			},
+			&parser.VarStatement{
+				Name: "name",
+				Value: &parser.InfixExpression{
+					Left: &parser.InfixExpression{
+						Left:     &parser.StringLiteral{Value: "Eclesio"},
+						Operator: "+",
+						Right:    &parser.StringLiteral{Value: " "},
+					},
+					Operator: "+",
+					Right:    &parser.StringLiteral{Value: "sio"},
+				},
+				Type: parser.String,
+			},
+
+			&parser.ReturnStatement{
+				Value: &parser.InfixExpression{
+					Operator: "+",
+					Left:     &parser.Identifier{Value: "a", Type: parser.Int32},
+					Right:    &parser.Identifier{Value: "b", Type: parser.Int32},
+				},
+				Type: 1,
+			},
+		},
+		ReturnType: parser.Int32,
+	}, program.Statements[0])
 }

@@ -1,0 +1,14 @@
+fn main(): int32 {
+    var a: int32 = 3;
+    var b: int32 = 0;
+    var c: int32 = b;
+
+    var name: string = "Eclesio" + " " + "sio";
+
+    print(name);
+    a = 1;
+
+    return a + b;
+}
+
+fn print(name: string) {}
