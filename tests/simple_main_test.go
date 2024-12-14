@@ -36,7 +36,7 @@ func TestSimpleMainWithTypes(t *testing.T) {
 	program, err := p.ParseProgram()
 	require.NoError(t, err)
 
-	require.Len(t, program.Statements, 1)
+	require.Len(t, program.Statements, 2)
 	require.Equal(t, &parser.FnStatement{
 		Name: "main",
 		Args: []*parser.Argument{},
@@ -56,6 +56,7 @@ func TestSimpleMainWithTypes(t *testing.T) {
 				Value: &parser.Identifier{Value: "b", Type: parser.Int32},
 				Type:  parser.Int32,
 			},
+
 			&parser.VarStatement{
 				Name: "name",
 				Value: &parser.InfixExpression{
@@ -70,6 +71,22 @@ func TestSimpleMainWithTypes(t *testing.T) {
 				Type: parser.String,
 			},
 
+			&parser.FnCall{
+				FnName: "print",
+				Params: []parser.Expression{
+					&parser.Identifier{
+						Value: "name",
+						Type:  parser.String,
+					},
+				},
+			},
+
+			&parser.ReassignVarStatement{
+				VarName: "a",
+				Value:   &parser.IntegerLiteral{Value: 1},
+				Type:    parser.Int32,
+			},
+
 			&parser.ReturnStatement{
 				Value: &parser.InfixExpression{
 					Operator: "+",
@@ -81,4 +98,16 @@ func TestSimpleMainWithTypes(t *testing.T) {
 		},
 		ReturnType: parser.Int32,
 	}, program.Statements[0])
+
+	require.Equal(t, &parser.FnStatement{
+		Name: "print",
+		Args: []*parser.Argument{
+			&parser.Argument{
+				Name: "name",
+				Type: parser.String,
+			},
+		},
+		Body:       []parser.Node{},
+		ReturnType: parser.Void,
+	}, program.Statements[1])
 }

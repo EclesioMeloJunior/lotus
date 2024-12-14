@@ -357,8 +357,6 @@ func (p *Parser) parseFnStatement() (*FnStatement, error) {
 	}
 
 	if fnStmt, exists := p.fns[stmt.Name]; exists && !fnStmt.Defined {
-		fmt.Println(len(fnStmt.ExpressionsToEvaluate))
-		fmt.Println(len(stmt.Args))
 		if len(fnStmt.ExpressionsToEvaluate) != len(stmt.Args) {
 			return nil, &ErrParser{
 				Line:   p.curToken.Line,
@@ -452,8 +450,6 @@ type ReturnStatement struct {
 
 // parseReturnStatement parses a return statement.
 func (p *Parser) parseReturnStatement(tt Type) (*ReturnStatement, error) {
-	fmt.Printf("parsing return stmt: %v\n", tt)
-
 	stmt := &ReturnStatement{}
 	p.nextToken()
 	expression, err := p.parseExpression(LOWEST, tt)
@@ -643,7 +639,6 @@ func (p *Parser) parseFnCallExpression(left Expression, tt Type) (Expression, er
 		// lets parse fn parameters, also updating the fn stmt
 		// if the function is not yet defined
 		for {
-			fmt.Printf("curr: %v\n", p.curToken.Type.String())
 			arg, err := p.parseExpression(LOWEST, Void)
 			if err != nil {
 				return nil, &ErrParser{
@@ -652,9 +647,6 @@ func (p *Parser) parseFnCallExpression(left Expression, tt Type) (Expression, er
 					Err:    errors.New("wrong paramater type"),
 				}
 			}
-
-			fmt.Printf("exp: %T\n", arg)
-			fmt.Printf("peek: %v\n", p.peekToken.Type.String())
 
 			fnCallExp.Params = append(fnCallExp.Params, arg)
 
