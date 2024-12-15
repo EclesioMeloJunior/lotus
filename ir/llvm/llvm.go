@@ -124,8 +124,13 @@ func (gen *IRGenerator) generateFnStatement(stmt *parser.FnStatement) {
 
 // generateReturnStatement generates LLVM IR for a return statement.
 func (gen *IRGenerator) generateReturnStatement(stmt *parser.ReturnStatement, fnName string) {
-	returnValue := gen.generateExpression(stmt.Value, fnName)
-	gen.builder.CreateRet(returnValue)
+	if stmt.Type == parser.Void {
+		gen.builder.CreateRetVoid()
+		return
+	} else {
+		returnValue := gen.generateExpression(stmt.Value, fnName)
+		gen.builder.CreateRet(returnValue)
+	}
 }
 
 // generateExpression generates LLVM IR for an expression.
@@ -155,6 +160,18 @@ func (gen *IRGenerator) generateExpression(expr parser.Expression, fnName string
 		default:
 			panic(fmt.Sprintf("unknown operator: %s", expr.Operator))
 		}
+	case *parser.FnCall:
+		var args []llvm.Value
+		for _, arg := range expr.Params {
+			args = append(args, gen.generateExpression(arg, fnName))
+		}
+
+		return gen.builder.CreateCall(
+			gen.fromRawTypeToLLVMType(expr.Type),
+			gen.Module.NamedFunction(expr.FnName),
+			args,
+			fmt.Sprintf("call_%s", expr.FnName),
+		)
 	default:
 		panic(fmt.Sprintf("unknown expression type: %T", expr))
 	}

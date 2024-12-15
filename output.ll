@@ -26,3 +26,10 @@ entry:
   %addtmp = add i32 %a3, %b4
   ret i32 %addtmp
 }
+
+define void @test() {
+entry:
+  %a = alloca i32, align 4
+  store i32 2, ptr %a, align 4
+  ret void
+}

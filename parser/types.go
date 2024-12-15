@@ -64,6 +64,10 @@ func verifyInt32(st Expression) error {
 		}
 
 		return nil
+	case *FnCall:
+		if inner.Type == Int32 {
+			return nil
+		}
 	}
 
 	return ErrWrongTypeAssigment
@@ -91,6 +95,10 @@ func verifyString(st Expression) error {
 		}
 
 		return nil
+	case *FnCall:
+		if inner.Type == String {
+			return nil
+		}
 	}
 
 	return ErrWrongTypeAssigment

@@ -70,6 +70,7 @@ type FnStatement struct {
 }
 
 type FnCall struct {
+	Type   Type
 	FnName string
 	Params []Expression
 }
@@ -472,6 +473,10 @@ func (p *Parser) parseFnStatement() (*FnStatement, error) {
 				Err:    errors.New("function must have a return"),
 			}
 		}
+	} else {
+		stmt.Body = append(stmt.Body, &ReturnStatement{
+			Type: Void,
+		})
 	}
 
 	p.fns[stmt.Name] = stmt
@@ -540,9 +545,8 @@ func (p *Parser) parseExpression(precedence int, tt Type) (Expression, error) {
 		if ok {
 			leftExp = &Identifier{Value: varStmt.Name, Type: varStmt.Type}
 		} else {
-			leftExp = &UnboundedIdentifier{Value: varStmt.Name}
+			leftExp = &UnboundedIdentifier{Value: p.curToken.Literal}
 		}
-
 	case lexer.LPAREN:
 		expression, err := p.parseGroupedExpression(tt)
 		if err != nil {
@@ -565,6 +569,8 @@ func (p *Parser) parseExpression(precedence int, tt Type) (Expression, error) {
 			leftExp = exp
 		case lexer.LPAREN:
 			p.nextToken()
+			p.nextToken()
+
 			exp, err := p.parseFnCallExpression(leftExp, tt)
 			if err != nil {
 				return nil, err
@@ -628,11 +634,12 @@ func (p *Parser) parseFnCallExpression(left Expression, tt Type) (Expression, er
 
 	fnCallExp := &FnCall{
 		FnName: fnIdentifier.Value,
+		Type:   fnStmt.ReturnType,
 	}
 
-	// is a simple call without parameterss
+	// is a simple call without parameters
+	fmt.Println("is RPARENT", p.curToken.Type == lexer.RPAREN, fnIdentifier, fnStmt.ReturnType)
 	if p.curToken.Type == lexer.RPAREN {
-		p.nextToken()
 		// save fn informations if the fn is not yet defined
 		if !ok {
 			p.fns[fnIdentifier.Value] = fnStmt
