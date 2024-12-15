@@ -45,10 +45,17 @@ func (gen *IRGenerator) GenerateIR(program *parser.Program) {
 
 // generateVarStatement generates LLVM IR for a variable declaration.
 func (gen *IRGenerator) generateVarStatement(stmt *parser.VarStatement, fnName string) {
-	alloca := gen.builder.CreateAlloca(gen.context.Int32Type(), stmt.Name)
-	varValue := gen.generateExpression(stmt.Value, fnName)
+	var alloca llvm.Value
+	if stmt.Type != parser.Void {
+		alloca = gen.builder.CreateAlloca(gen.fromRawTypeToLLVMType(stmt.Type), stmt.Name)
+	} else {
+		alloca = gen.builder.CreateAlloca(gen.context.Int8Type(), stmt.Name)
+	}
 
-	gen.builder.CreateStore(varValue, alloca)
+	if stmt.Value != nil {
+		varValue := gen.generateExpression(stmt.Value, fnName)
+		gen.builder.CreateStore(varValue, alloca)
+	}
 
 	if fnName != "" {
 		gen.locals[fnName][stmt.Name] = alloca
@@ -57,10 +64,37 @@ func (gen *IRGenerator) generateVarStatement(stmt *parser.VarStatement, fnName s
 	}
 }
 
+func (gen *IRGenerator) fromRawTypeToLLVMType(rawType parser.Type) llvm.Type {
+	switch rawType {
+	case parser.Int32:
+		return gen.context.Int32Type()
+	case parser.String:
+		return stringType()
+	case parser.Void:
+		return gen.context.VoidType()
+	case parser.Float32:
+		return gen.context.FloatType()
+	default:
+		panic(fmt.Sprintf("type %v not supported", rawType))
+	}
+}
+
+func (gen *IRGenerator) getFnSignatureType(stmt *parser.FnStatement) llvm.Type {
+	returnType := gen.fromRawTypeToLLVMType(stmt.ReturnType)
+
+	var paramsTypes []llvm.Type
+	for _, p := range stmt.Args {
+		paramsTypes = append(paramsTypes, gen.fromRawTypeToLLVMType(p.Type))
+	}
+
+	return llvm.FunctionType(returnType, paramsTypes, false)
+}
+
 // generateFnStatement generates LLVM IR for a function declaration.
 func (gen *IRGenerator) generateFnStatement(stmt *parser.FnStatement) {
-	fnType := llvm.FunctionType(gen.context.Int32Type(), nil, false)
+	fnType := gen.getFnSignatureType(stmt)
 	fn := llvm.AddFunction(gen.Module, stmt.Name, fnType)
+
 	fn.SetFunctionCallConv(llvm.CCallConv)
 	entry := llvm.AddBasicBlock(fn, "entry")
 	gen.builder.SetInsertPointAtEnd(entry)

@@ -1,6 +1,6 @@
 module github.com/EclesioMeloJunior/lotus
 
-go 1.23.1
+go 1.23.4
 
 require (
 	github.com/stretchr/testify v1.10.0

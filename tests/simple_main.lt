@@ -1,5 +1,6 @@
-fn main() {
+fn main(): int32 {
     var a = 3;
     var b = 0;
+    var c: int32;
     return a + b;
 }

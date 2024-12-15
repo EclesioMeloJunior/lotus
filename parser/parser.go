@@ -182,6 +182,7 @@ func (p *Parser) parseStatement(tt Type) (Node, error) {
 	case lexer.FN:
 		return p.parseFnStatement()
 	case lexer.RETURN:
+		fmt.Println("parsing return stmt")
 		return p.parseReturnStatement(tt)
 	case lexer.IDENT:
 		varStmt, exists := p.vars[p.curToken.Literal]
@@ -227,6 +228,7 @@ func (p *Parser) parseVarStatement() (*VarStatement, error) {
 	}
 	stmt.Name = p.curToken.Literal
 
+	shouldInfer := true
 	if p.peekToken.Type == lexer.COLON {
 		p.nextToken()
 		// TODO: should support custom types
@@ -235,6 +237,14 @@ func (p *Parser) parseVarStatement() (*VarStatement, error) {
 		}
 
 		stmt.Type = getTypeFromLiteral(p.curToken.Literal)
+		shouldInfer = false
+	}
+
+	if endOfStatement(p.peekToken.Type) {
+		p.nextToken()
+		stmt.Value = nil
+		p.vars[stmt.Name] = stmt
+		return stmt, nil
 	}
 
 	if err := p.consumeOrFail(lexer.ASSIGN); err != nil {
@@ -248,6 +258,17 @@ func (p *Parser) parseVarStatement() (*VarStatement, error) {
 	}
 
 	stmt.Value = expression
+
+	if shouldInfer {
+		stmt.Type, err = p.inferTypeFromExpression(stmt.Value)
+		if err != nil {
+			return nil, &ErrParser{
+				Line:   p.curToken.Line,
+				Column: p.curToken.Column + len(p.curToken.Literal),
+				Err:    err,
+			}
+		}
+	}
 
 	if !endOfStatement(p.peekToken.Type) {
 		return nil, &ErrParser{
@@ -422,6 +443,9 @@ func (p *Parser) parseFnStatement() (*FnStatement, error) {
 
 		switch inner := stmt.Body[len(stmt.Body)-1].(type) {
 		case *ReturnStatement:
+			fmt.Println("returned", inner.Type)
+			fmt.Println("fn", stmt.ReturnType)
+
 			if inner.Type != stmt.ReturnType {
 				return nil, &ErrParser{
 					Line:   p.curToken.Line,
@@ -453,6 +477,7 @@ func (p *Parser) parseReturnStatement(tt Type) (*ReturnStatement, error) {
 	stmt := &ReturnStatement{}
 	p.nextToken()
 	expression, err := p.parseExpression(LOWEST, tt)
+	fmt.Println("err", err)
 	if err != nil {
 		return nil, err
 	}
@@ -746,6 +771,49 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 		return true
 	}
 	return false
+}
+
+func (p *Parser) inferTypeFromExpression(exp Expression) (Type, error) {
+	switch exp := exp.(type) {
+	case *StringLiteral:
+		return String, nil
+	case *IntegerLiteral:
+		return Int32, nil
+	case *Identifier:
+		if assignedVar, ok := p.vars[exp.Value]; ok {
+			return assignedVar.Type, nil
+		}
+
+		return 0, fmt.Errorf("cannot infer type for: %s", exp.Value)
+	case *FloatLiteral:
+		return Float32, nil
+	case *InfixExpression:
+		lhsType, err := p.inferTypeFromExpression(exp.Left)
+		if err != nil {
+			return 0, err
+		}
+
+		rhsType, err := p.inferTypeFromExpression(exp.Right)
+		if err != nil {
+			return 0, err
+		}
+
+		if lhsType != rhsType {
+			return 0, errors.New("cannot infer type")
+		}
+
+		return lhsType, nil
+	case *PrefixExpression:
+		return p.inferTypeFromExpression(exp.Right)
+	case *FnCall:
+		if fn, ok := p.fns[exp.FnName]; ok {
+			return fn.ReturnType, nil
+		}
+
+		return 0, errors.New("cannot infer type")
+	default:
+		return 0, errors.New("cannot infer type")
+	}
 }
 
 func endOfStatement(t lexer.TokenType) bool {

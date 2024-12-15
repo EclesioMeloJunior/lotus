@@ -4,11 +4,7 @@ fn main(): int32 {
     var c: int32 = b;
 
     var name: string = "Eclesio" + " " + "sio";
-
-    print(name);
     a = 1;
 
     return a + b;
 }
-
-fn print(name: string) {}

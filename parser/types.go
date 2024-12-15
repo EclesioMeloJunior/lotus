@@ -16,6 +16,7 @@ const (
 	Void Type = iota
 	Int32
 	String
+	Float32
 )
 
 func (t *Type) Verify(st Expression) error {
