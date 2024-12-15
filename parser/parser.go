@@ -11,6 +11,15 @@ import (
 
 var ErrVariableUndefined = errors.New("variable undefined")
 
+var systemFunctions = map[string]*FnStatement{
+	"print": {
+		Name: "print",
+		Args: []*Argument{
+			{Name: "toPrint"},
+		},
+	},
+}
+
 // Node represents a node in the AST.
 type Node interface{}
 
@@ -36,6 +45,14 @@ type ReassignVarStatement struct {
 	VarName string
 	Type    Type
 	Value   Expression
+}
+
+func (r *ReassignVarStatement) ToVarAssignment() *VarStatement {
+	return &VarStatement{
+		Name:  r.VarName,
+		Type:  r.Type,
+		Value: r.Value,
+	}
 }
 
 type Argument struct {
@@ -182,7 +199,6 @@ func (p *Parser) parseStatement(tt Type) (Node, error) {
 	case lexer.FN:
 		return p.parseFnStatement()
 	case lexer.RETURN:
-		fmt.Println("parsing return stmt")
 		return p.parseReturnStatement(tt)
 	case lexer.IDENT:
 		varStmt, exists := p.vars[p.curToken.Literal]
@@ -315,7 +331,6 @@ func (p *Parser) parseReasignStatement(old *VarStatement) (*ReassignVarStatement
 	}
 
 	p.nextToken()
-
 	return reasign, nil
 }
 
@@ -443,9 +458,6 @@ func (p *Parser) parseFnStatement() (*FnStatement, error) {
 
 		switch inner := stmt.Body[len(stmt.Body)-1].(type) {
 		case *ReturnStatement:
-			fmt.Println("returned", inner.Type)
-			fmt.Println("fn", stmt.ReturnType)
-
 			if inner.Type != stmt.ReturnType {
 				return nil, &ErrParser{
 					Line:   p.curToken.Line,
@@ -477,7 +489,6 @@ func (p *Parser) parseReturnStatement(tt Type) (*ReturnStatement, error) {
 	stmt := &ReturnStatement{}
 	p.nextToken()
 	expression, err := p.parseExpression(LOWEST, tt)
-	fmt.Println("err", err)
 	if err != nil {
 		return nil, err
 	}
@@ -694,6 +705,7 @@ func (p *Parser) parseFnCallExpression(left Expression, tt Type) (Expression, er
 }
 
 func (p *Parser) parseInfixExpression(left Expression, tt Type) (Expression, error) {
+	// TODO: support string concatenation under infix expression
 	expression := &InfixExpression{
 		Left:     left,
 		Operator: p.curToken.Literal,

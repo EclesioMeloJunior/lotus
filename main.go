@@ -18,14 +18,22 @@ func main() {
 		return
 	}
 
-	sourceFile := os.Args[1]
-	source, err := os.ReadFile(sourceFile)
-	if err != nil {
-		fmt.Printf("Error reading source file: %v\n", err)
-		return
+	sources := strings.Builder{}
+	for _, sourceFile := range os.Args[1:] {
+		fmt.Printf("reading %s ...\n", sourceFile)
+		source, err := os.ReadFile(sourceFile)
+		if err != nil {
+			fmt.Printf("Error reading source file: %v\n", err)
+			return
+		}
+		_, err = sources.Write(source)
+		if err != nil {
+			fmt.Printf("Error concatenating source file: %v\n", err)
+			return
+		}
 	}
 
-	l := lexer.NewLexer(strings.NewReader(string(source)))
+	l := lexer.NewLexer(strings.NewReader(sources.String()))
 	tokens := l.NextToken()
 	p := parser.NewParser(tokens)
 

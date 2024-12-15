@@ -3,7 +3,9 @@ fn main(): int32 {
     var b: int32 = 0;
     var c: int32 = b;
 
-    var name: string = "Eclesio" + " " + "sio";
+    var name: string = "Eclesio";
+    print(name);
+    
     a = 1;
 
     return a + b;

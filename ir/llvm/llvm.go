@@ -33,12 +33,24 @@ func NewIRGenerator() *IRGenerator {
 
 // GenerateIR generates LLVM IR from the given AST.
 func (gen *IRGenerator) GenerateIR(program *parser.Program) {
-	for _, stmt := range program.Statements {
+	gen.generate(program.Statements, "")
+}
+
+func (gen *IRGenerator) generate(stmts []parser.Node, fnName string) {
+	for _, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *parser.VarStatement:
-			gen.generateVarStatement(stmt, "")
+			gen.generateVarStatement(stmt, fnName)
+		case *parser.ReassignVarStatement:
+			gen.generateVarStatement(stmt.ToVarAssignment(), fnName)
 		case *parser.FnStatement:
+			if fnName != "" {
+				panic("functions cannot be inside other functions")
+			}
+
 			gen.generateFnStatement(stmt)
+		case *parser.ReturnStatement:
+			gen.generateReturnStatement(stmt, fnName)
 		}
 	}
 }
@@ -69,7 +81,7 @@ func (gen *IRGenerator) fromRawTypeToLLVMType(rawType parser.Type) llvm.Type {
 	case parser.Int32:
 		return gen.context.Int32Type()
 	case parser.String:
-		return stringType()
+		return stringType
 	case parser.Void:
 		return gen.context.VoidType()
 	case parser.Float32:
@@ -102,14 +114,12 @@ func (gen *IRGenerator) generateFnStatement(stmt *parser.FnStatement) {
 	gen.locals = make(map[string]map[string]llvm.Value)
 	gen.locals[stmt.Name] = make(map[string]llvm.Value)
 
-	for _, bodyStmt := range stmt.Body {
-		switch bodyStmt := bodyStmt.(type) {
-		case *parser.VarStatement:
-			gen.generateVarStatement(bodyStmt, stmt.Name)
-		case *parser.ReturnStatement:
-			gen.generateReturnStatement(bodyStmt, stmt.Name)
-		}
+	if len(stmt.Body) == 0 {
+		gen.builder.CreateRetVoid()
+		return
 	}
+
+	gen.generate(stmt.Body, stmt.Name)
 }
 
 // generateReturnStatement generates LLVM IR for a return statement.
@@ -123,6 +133,8 @@ func (gen *IRGenerator) generateExpression(expr parser.Expression, fnName string
 	switch expr := expr.(type) {
 	case *parser.IntegerLiteral:
 		return llvm.ConstInt(gen.context.Int32Type(), uint64(expr.Value), false)
+	case *parser.StringLiteral:
+		return llvm.ConstString(expr.Value, true)
 	case *parser.FloatLiteral:
 		return llvm.ConstFloat(gen.context.FloatType(), expr.Value)
 	case *parser.Identifier:
