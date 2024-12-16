@@ -7,6 +7,11 @@ import (
 	"tinygo.org/x/go-llvm"
 )
 
+type Fn struct {
+	Type  llvm.Type
+	Value llvm.Value
+}
+
 // IRGenerator represents an LLVM IR generator.
 type IRGenerator struct {
 	Module  llvm.Module
@@ -14,6 +19,7 @@ type IRGenerator struct {
 	context llvm.Context
 
 	globals map[string]llvm.Value
+	fns     map[string]*Fn
 	locals  map[string]map[string]llvm.Value
 }
 
@@ -28,6 +34,7 @@ func NewIRGenerator() *IRGenerator {
 		context: context,
 		globals: make(map[string]llvm.Value),
 		locals:  make(map[string]map[string]llvm.Value),
+		fns:     make(map[string]*Fn),
 	}
 }
 
@@ -106,6 +113,10 @@ func (gen *IRGenerator) getFnSignatureType(stmt *parser.FnStatement) llvm.Type {
 func (gen *IRGenerator) generateFnStatement(stmt *parser.FnStatement) {
 	fnType := gen.getFnSignatureType(stmt)
 	fn := llvm.AddFunction(gen.Module, stmt.Name, fnType)
+	gen.fns[stmt.Name] = &Fn{
+		Type:  fnType,
+		Value: fn,
+	}
 
 	fn.SetFunctionCallConv(llvm.CCallConv)
 	entry := llvm.AddBasicBlock(fn, "entry")
@@ -161,20 +172,36 @@ func (gen *IRGenerator) generateExpression(expr parser.Expression, fnName string
 			panic(fmt.Sprintf("unknown operator: %s", expr.Operator))
 		}
 	case *parser.FnCall:
+		fn, ok := gen.getFn(expr.FnName)
+		if !ok {
+			panic("function not found")
+		}
+
 		var args []llvm.Value
 		for _, arg := range expr.Params {
 			args = append(args, gen.generateExpression(arg, fnName))
 		}
 
 		return gen.builder.CreateCall(
-			gen.fromRawTypeToLLVMType(expr.Type),
-			gen.Module.NamedFunction(expr.FnName),
+			fn.Type,
+			fn.Value,
 			args,
-			fmt.Sprintf("call_%s", expr.FnName),
+			fmt.Sprintf("call%s", expr.FnName),
 		)
 	default:
 		panic(fmt.Sprintf("unknown expression type: %T", expr))
 	}
+}
+
+func (gen *IRGenerator) getFn(fnName string) (*Fn, bool) {
+	if fn, ok := gen.fns[fnName]; ok {
+		return fn, true
+	}
+
+	// TODO: if the function was not found in the map
+	// then search it in the source AST
+
+	return nil, false
 }
 
 // Dump prints the generated LLVM IR.

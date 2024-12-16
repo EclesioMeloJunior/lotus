@@ -8,6 +8,11 @@ entry:
   ret void
 }
 
+define i32 @test() {
+entry:
+  ret i32 2
+}
+
 define i32 @main() {
 entry:
   %a = alloca i32, align 4
@@ -21,15 +26,6 @@ entry:
   store [8 x i8] c"Eclesio\00", ptr %name, align 1
   %a2 = alloca i32, align 4
   store i32 1, ptr %a2, align 4
-  %a3 = load i32, ptr %a2, align 4
-  %b4 = load i32, ptr %b, align 4
-  %addtmp = add i32 %a3, %b4
-  ret i32 %addtmp
-}
-
-define void @test() {
-entry:
-  %a = alloca i32, align 4
-  store i32 2, ptr %a, align 4
-  ret void
+  %calltest = call i32 @test()
+  ret i32 %calltest
 }
